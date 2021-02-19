@@ -9,61 +9,55 @@ import sys
 import importlib
 import math
 
+sys.path.append("/amazon/root/bfr/pyscripts")
 
-sys.path.append(os.path.dirname(bpy.data.filepath))
+
+OUTPATH="/amazon/root/bfr/exports/bfs6.dae"
 
 import bfs
 importlib.reload(bfs)
 
-objects = [
+fuseObjects = [
+    "bottom dome",
     "bottom_fuse",
     "bottom_heatshield",
-    "canard flange1",
-    "canard flange2",
-    "canard1",
+    "canard",
+    "canard flange",
     "canard2",
+    "canard flange2",
     "flag",
     "hatch1",
     "hatch1_outline",
     "hatch2",
     "hatch2_outline",
-    "pipes",
     "spacex",
-    "tank rear",
-    "top dome",
     "top_fuse",
     "top_heatshield",
-    "wing base3",
-    "wing base4",
-    "wing cylinder3",
-    "wing cylinder4",
+    "wing",
+    "wing flange",
     "wing2",
-    "wing3",
-    "wing4",
-    "wing_heatshield"
+    "wing flange2",
     ]
 
-
-
-
-bfs.selectList(objects)
+bfs.selectList(fuseObjects)
 for i in range(0, 101):
     bfs.findObject("window_" + str(i)).select = True
-    
-path = os.path.dirname(bpy.data.filepath) + "/bfs.godot/assets/bfs5.dae"
 
-#bpy.ops.wm.collada_export(filepath=bfs.PATH + "assets/bfs5.dae", 
+
+# stock exporter
+#bpy.ops.wm.collada_export(filepath=OUTPATH, 
 #    apply_modifiers=True,
 #    selected=True,
 #    triangulate=False)
 
-bpy.ops.export_scene.dae(filepath=path, 
+# better exporter
+bpy.ops.export_scene.dae(filepath=OUTPATH, 
     use_mesh_modifiers=True,
     use_export_selected=True,
     use_triangles=True,
     anim_optimize_precision=1)
 
-print("wrote %s" % path)
+print("Wrote %s" % OUTPATH)
     
     
     

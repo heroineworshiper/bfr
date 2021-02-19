@@ -1,5 +1,5 @@
 # navigate instead of play
-const TEST_MODE = false
+const TEST_MODE = true
 
 # rate of throttle change per second
 export var THROTTLE_RATE = 0.75

@@ -5,4 +5,3 @@
 
 [node name="Scene Root" index="0" instance=ExtResource( 1 )]
 script = ExtResource( 2 )
-

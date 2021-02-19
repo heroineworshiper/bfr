@@ -9,7 +9,7 @@ var grid_deploy_sound
 var grid_retract_sound
 
 
-const booster_engines = 31
+const booster_engines = 24
 const total_flames = 2
 var booster_raptors = Array()
 var flames = Array()
@@ -122,32 +122,28 @@ func _ready():
     var layerRadius = [
         4.1,
         3.1,
-        1.4,
-        0.0
+        1.4
     ]
 
     # Z of each layer in m
     var layerZ = [
         0,
         -0.3,
-        -0.4,
-        -0.5,
+        -0.4
     ]
 
     # starting angle of each layer
     var layerAngle = [
         library.toRad(0.0),
         library.toRad(17.0),
-        library.toRad(0.0),
-        library.toRad(0.0)
+        library.toRad(22.5)
     ]
 
     # engines in each layer
     var layerTotal = [
-        12,
-        12,
-        6,
-        1
+        10,
+        10,
+        4
     ]
     
     # engine in the current layer
@@ -247,7 +243,7 @@ func _process(delta):
 
 # handle throttle
 #    for i in range(24, 31):
-    for i in range(0, 31):
+    for i in range(0, booster_engines):
         booster_raptors[i].setThrottle(commanded_throttle)
 
 # gimbal the true thrust vector at its maximum rate
@@ -260,7 +256,7 @@ func _process(delta):
     # move center engines
     #for i in range(24, 31):
     # looks brutal if they don't all pivot
-    for i in range(0, 31):
+    for i in range(0, booster_engines):
         # reset the engine transformation
         if booster_raptors[i] == null:
             print("single_stage.process booster_raptors[i]=%s" % [str(booster_raptors[i])])
@@ -283,7 +279,7 @@ func _process(delta):
         booster_raptors[i].rotate_z(thrust_vector2.z)
 
 # handle engine sound based on 1 engine
-    var refRaptor = booster_raptors[24]
+    var refRaptor = booster_raptors[booster_engines - 1]
 # get out of joystick init
     if refRaptor.state != library.ENGINE_JOYSTICK_INIT && \
         prevEngineState == library.ENGINE_JOYSTICK_INIT:
@@ -341,7 +337,7 @@ func _process(delta):
 
 
 func _physics_process(delta):
-    var refRaptor = booster_raptors[24]
+    var refRaptor = booster_raptors[booster_engines - 1]
 
 # rigid body motion
     match state:
@@ -357,8 +353,8 @@ func _physics_process(delta):
 # get rotation rate in world domane
     var rotationRate = rigid.get_angular_velocity()
 
-    if number == 0:
-        print("single_stage._physics_process %s" % [str(rotationRate)])
+#    if number == 0:
+#        print("single_stage._physics_process %s" % [str(rotationRate)])
     rigid.set_angular_velocity(rotationRate * 0)
 
 # apply reversed rotation rate in world domane

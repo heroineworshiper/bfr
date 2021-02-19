@@ -9,10 +9,9 @@ import sys
 import importlib
 import math
 
-libpath = os.path.dirname(bpy.data.filepath) + "/../pyscripts"
-sys.path.append(libpath)
+sys.path.append("/amazon/root/bfr/pyscripts")
 
-print("libpath=%s" % (libpath))
+OUTPATH="/amazon/root/bfr/exports/raptor.dae"
 
 import bfs
 importlib.reload(bfs)
@@ -21,10 +20,6 @@ importlib.reload(bfs)
 objects = [
     'charcoal.01',
     'charcoal.02',
-    'stainless.01',
-    'stainless.02',
-    'stainless.03',
-    'stainless.04',
     'sea_nozzle',
     'vacuum_nozzle',
     'sea_flame',
@@ -36,10 +31,10 @@ objects = [
 bfs.selectList(objects, showThem=True)
 
 
-path = os.path.dirname(bpy.data.filepath) + "/../exports/raptor.dae"
 
 
-bpy.ops.export_scene.dae(filepath=path, 
+# better exporter
+bpy.ops.export_scene.dae(filepath=OUTPATH, 
     use_mesh_modifiers=True,
     use_export_selected=True,
     use_triangles=True,

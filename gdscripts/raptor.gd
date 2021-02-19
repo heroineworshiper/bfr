@@ -26,10 +26,6 @@ var SHUTDOWN_TIME = 0.25
 var materials = [
     'charcoal01', "res://materials/heatshield.tres",
     'charcoal02', "res://materials/heatshield.tres",
-    'stainless01', "res://materials/white.material",
-    'stainless02', "res://materials/white.material",
-    'stainless03', "res://materials/white.material",
-    'stainless04', "res://materials/white.material",
     'sea_nozzle', "res://materials/heatshield2side.tres",
     'vacuum_nozzle', "res://materials/heatshield2side.tres",
     'sea_flame', "res://materials/flame2.material",
