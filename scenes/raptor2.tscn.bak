@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://exports/raptor.gltf" type="PackedScene" id=1]
+[ext_resource path="res://gdscripts/raptor2.gd" type="Script" id=2]
+[ext_resource path="res://images/flame1.png" type="Texture" id=3]
+[ext_resource path="res://scenes/flame.tscn" type="PackedScene" id=4]
+
+[sub_resource type="ParticlesMaterial" id=1]
+render_priority = 1
+emission_shape = 1
+emission_sphere_radius = 0.5
+spread = 0.5
+flatness = 1.0
+gravity = Vector3( 0, 0, 0 )
+initial_velocity = 1.0
+angular_velocity = 7.9874e-44
+
+[sub_resource type="SpatialMaterial" id=2]
+flags_transparent = true
+flags_unshaded = true
+params_blend_mode = 1
+albedo_color = Color( 0, 0.647059, 1, 1 )
+albedo_texture = ExtResource( 3 )
+
+[sub_resource type="QuadMesh" id=3]
+material = SubResource( 2 )
+size = Vector2( 9, 30 )
+
+[node name="Scene Root" instance=ExtResource( 1 )]
+transform = Transform( -1, 1.50996e-07, 0, -1.50996e-07, -1, 0, 0, 0, 1, 0, 0, 0 )
+script = ExtResource( 2 )
+
+[node name="flame" parent="." index="0"]
+transform = Transform( 1.59974, 0, 0, 0, 14.2088, 0, 0, 0, 1.6, 0, 1.59, 0 )
+visible = false
+
+[node name="cones" parent="." index="1"]
+visible = false
+
+[node name="seaNozzle" parent="." index="5"]
+visible = false
+
+[node name="SpotLight" type="DirectionalLight" parent="." index="6"]
+transform = Transform( 0.0162974, 0, -0.999867, 0, 1, 0, 0.999867, 0, 0.0162974, -9.89333, 0, 0 )
+visible = false
+
+[node name="Particles" type="Particles" parent="." index="7"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00199811, 10.74, -0.00253725 )
+visible = false
+amount = 16
+speed_scale = 55.0
+process_material = SubResource( 1 )
+draw_pass_1 = SubResource( 3 )
+
+[node name="flame2" parent="." index="8" instance=ExtResource( 4 )]
+transform = Transform( -1, -8.74228e-08, 0, -8.74228e-08, 1, 8.74228e-08, -7.64274e-15, 8.74228e-08, -1, 2.52101e-07, 1.66959, 0 )
+visible = false
+

@@ -1,0 +1,15 @@
+[remap]
+
+importer="ogg_vorbis"
+type="AudioStreamOGGVorbis"
+path="res://.import/gas_loop.ogg-df65d96a18a2f1612aacfec7a197bb98.oggstr"
+
+[deps]
+
+source_file="res://sounds/gas_loop.ogg"
+dest_files=[ "res://.import/gas_loop.ogg-df65d96a18a2f1612aacfec7a197bb98.oggstr" ]
+
+[params]
+
+loop=true
+loop_offset=0

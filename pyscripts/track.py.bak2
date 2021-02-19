@@ -1,0 +1,222 @@
+# convert sketch to a track
+
+import os
+import bpy
+import bmesh
+import sys
+import importlib
+import math
+from mathutils import *
+
+
+sys.path.append(os.path.dirname(bpy.data.filepath))
+import bfs
+importlib.reload(bfs)
+
+from bpy_extras.image_utils import load_image
+
+tracks = []
+
+
+def interpolateCoords(coord1, coord2, fraction):
+    inverse = 1.0 - fraction
+    return [coord1[0] * fraction + coord2[0] * inverse, \
+        coord1[1] * fraction + coord2[1] * inverse, \
+        coord1[2] * fraction + coord2[2] * inverse]
+
+
+# sort the vertices in the object & return a new array of indexes
+def sortVertices(src):
+    src_verts = src.data.vertices
+    src_edges = src.data.edges
+
+# Search for 2 vertices that occur only once to find the start & end.
+    vertexUsage = []
+    for src_edge in src_edges:
+        vertexUsage.append(src_edge.vertices[0])
+        vertexUsage.append(src_edge.vertices[1])
+
+# use the lower numbered one as the start
+    startVertex = 0
+    startSide = 0
+    gotStart = False
+    for i in range(0, len(src_verts)):
+        if vertexUsage.count(i) == 1:
+            #print("sortVertices vertex %d used once" % (i))
+            if startVertex > i or not gotStart:
+                startVertex = i
+                startSide = i % 1
+                gotStart = True
+
+    current_vert = startVertex
+    oppositeSide = 1 - startSide
+    sorted_verts = [ src_verts[current_vert] ]
+    got_it = True
+    while got_it:
+       got_it = False
+       for i in range(0, len(src_edges)):
+            src_edge = src_edges[i]
+            if(src_edge.vertices[startSide] == current_vert):
+                 current_vert = src_edge.vertices[oppositeSide]
+                 #print("sorted vert=%d" % (current_vert))
+                 sorted_verts.append(src_verts[current_vert])
+                 got_it = True
+                 break
+
+#    for i in range(0, len(sorted_verts)):
+#        coord = src.matrix_world * sorted_verts[i].co
+#        print("sorted vert=%f,%f,%f" % (coord[0], coord[1], coord[2]))
+
+    return sorted_verts
+
+
+
+
+TRACK_H = 3
+TRACK_W = 3
+# fraction to inset arrows inside faces
+INSET = .2
+
+# subdivide, extrude, UV map
+def extrudeTrack(src, dstName):
+    src_verts = src.data.vertices
+    src_edges = src.data.edges
+#    for i in range(0, len(src_edges)):
+#        print("edge=%d vertices=%d %d" % (i, src_edges[i].vertices[0], src_edges[i].vertices[1]))
+
+# create a temp object
+    temp_dst, temp_bm, temp_mesh = bfs.createObject(dstName + ".temp")
+    sortedVerts = sortVertices(src)
+
+    scaledVerts = []
+    for vert in sortedVerts:
+        coord = vert.co
+        scaledVerts.append(temp_bm.verts.new(src.matrix_world * coord))
+
+# create the result object
+    dst, bm, mesh = bfs.createObject(dstName)
+    sortedVerts = sortVertices(src)
+
+
+# vertices spaced evenly across the scaledVerts
+    spacedVerts = []
+    debug = 0
+    if False:
+        for vert in scaledVerts:
+            if len(spacedVerts) == 0:
+    # 1st vertex
+                spacedVerts.append(vert)
+                refCoord2 = vert.co
+                newCoord = vert.co
+            else:
+    # step towards next vertex until distance from previous vertex matches
+                refCoord1 = refCoord2
+                refCoord2 = vert.co
+                i_offset = 0
+                for i in range(0, 1000):
+                    fraction = float(i - i_offset) / 1000
+                    inverse = float(1) - fraction
+                    testCoord = refCoord1 * inverse + \
+                        refCoord2 * fraction
+
+                    distance = bfs.mag(testCoord - newCoord)
+    #                print("fraction=%f  distance=%f" % \
+    #                    (fraction, distance))
+    # covered enough distance.  Add a new point
+                    if distance >= TRACK_W:
+                        newCoord = testCoord
+                        newVert = bm.verts.new(testCoord)
+                        spacedVerts.append(newVert)
+
+
+    if False:
+    # convert new verts to faces
+        faceVerts = []
+        for i in range(1, len(spacedVerts)):
+    # the 4 corners
+            inVert1 = spacedVerts[i - 1].co
+            inVert2 = spacedVerts[i].co
+            inVert3 = inVert1 + Vector([0, 0, TRACK_H])
+            inVert4 = inVert2 + Vector([0, 0, TRACK_H])
+    # interpolate between corners to inset it
+            vert1 = bm.verts.new(Vector(interpolateCoords(inVert1, inVert4, INSET)))
+            vert2 = bm.verts.new(Vector(interpolateCoords(inVert3, inVert2, INSET)))
+            vert3 = bm.verts.new(Vector(interpolateCoords(inVert4, inVert1, INSET)))
+            vert4 = bm.verts.new(Vector(interpolateCoords(inVert2, inVert3, INSET)))
+            bm.faces.new((vert4, vert3, vert2, vert1))
+        bm.verts.ensure_lookup_table()
+        bm.faces.ensure_lookup_table()
+
+
+    # create UV's
+        uv_layer = bm.loops.layers.uv.verify()
+        bm.faces.layers.tex.verify()
+
+        uv_list = [
+            0, 1,
+            0, 0,
+            1, 0, 
+            1, 1, 
+        ]
+
+        for face in bm.faces:
+    #        print("face")
+            for i, loop in enumerate(face.loops):
+                uv = loop[uv_layer].uv
+                uv[0] = uv_list[i * 2]
+                uv[1] = uv_list[i * 2 + 1]
+    #            print("i=%d uv=%f,%f" % (i, uv[0], uv[1]))
+
+
+
+# make the bmesh the object's mesh
+    bm.to_mesh(mesh)
+    bm.free()  # always do this when finished
+
+    if False:
+    # create the material
+        #print("extrudeTrack 1 %s" % (os.path.dirname(bpy.data.filepath)))
+        image = load_image("bfs.godot/assets/track1.png", 
+            os.path.dirname(bpy.data.filepath), 
+            check_existing=True, 
+            force_reload=False)
+        #print("extrudeTrack 2 %s" % (image.filepath))
+        tex = bfs.create_image_textures(image)
+        material = bfs.create_material_for_texture(tex)
+
+
+    # assign the material
+        if dst.data.materials:
+            dst.data.materials[0] = material
+            material_id = 0
+        else:
+            dst.data.materials.append(material)
+            material_id = len(dst.data.materials) - 1
+        print("uv_textures=%d data=%d" % (len(dst.data.uv_textures), len(dst.data.uv_textures[0].data)))
+        for tex in dst.data.uv_textures[0].data:
+            tex.image = image
+
+
+
+
+
+
+
+
+# find all track objects of the form ltrack.00*, rtrack.00*
+for i in bpy.data.objects:
+    nameParts = i.name.split(".")
+
+    if nameParts[0] == "ltrack":
+        tracks.append(i)
+        print(i.name)
+        extrudeTrack(i, "Left Arrows")
+
+#    if nameParts[0] == "rtrack":
+#        tracks.append(i)
+#        print(i.name);
+#        extrudeTrack(i, "Right Arrows")
+
+
+
+

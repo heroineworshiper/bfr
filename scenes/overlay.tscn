@@ -1,0 +1,66 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://gdscripts/overlay.gd" type="Script" id=1]
+[ext_resource path="res://images/white.png" type="Texture" id=2]
+[ext_resource path="res://images/speed_bg.png" type="Texture" id=3]
+[ext_resource path="res://scenes/speed.tscn" type="PackedScene" id=4]
+[ext_resource path="res://images/bottom.png" type="Texture" id=5]
+
+[sub_resource type="DynamicFontData" id=1]
+font_path = "res://materials/bankgothic-regulardb.ttf"
+
+[sub_resource type="DynamicFont" id=2]
+size = 18
+font_data = SubResource( 1 )
+
+[sub_resource type="DynamicFontData" id=3]
+font_path = "res://materials/bankgothic-regulardb.ttf"
+
+[sub_resource type="DynamicFont" id=4]
+size = 44
+font_data = SubResource( 3 )
+
+[node name="overlay" type="Node2D"]
+script = ExtResource( 1 )
+
+[node name="test bg" type="Sprite" parent="."]
+visible = false
+position = Vector2( 1106.53, 642.901 )
+scale = Vector2( 8.87206, 5.20165 )
+texture = ExtResource( 2 )
+
+[node name="speed_bg" type="Sprite" parent="."]
+position = Vector2( 264.993, 1014.58 )
+texture = ExtResource( 3 )
+
+[node name="speed" parent="." instance=ExtResource( 4 )]
+position = Vector2( 130, 980 )
+scale = Vector2( 0.5, 0.5 )
+
+[node name="telemetry" type="Label" parent="."]
+margin_left = 112.198
+margin_top = 1030.33
+margin_right = 381.198
+margin_bottom = 1062.33
+custom_fonts/font = SubResource( 2 )
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "STAGE 2 TELEMETRY"
+
+[node name="altitude" parent="." instance=ExtResource( 4 )]
+position = Vector2( 290, 980 )
+scale = Vector2( 0.5, 0.5 )
+
+[node name="bottom" type="Sprite" parent="."]
+position = Vector2( 951, 989 )
+scale = Vector2( 1.5, 1.5 )
+texture = ExtResource( 5 )
+
+[node name="time" type="Label" parent="."]
+margin_left = 779.607
+margin_top = 982.357
+margin_right = 1153.61
+margin_bottom = 1040.36
+custom_fonts/font = SubResource( 4 )
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "T + 00:00.000"
+valign = 1

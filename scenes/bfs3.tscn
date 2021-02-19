@@ -1,0 +1,73 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://exports/bfs5.dae" type="PackedScene" id=1]
+[ext_resource path="res://gdscripts/bfs3.gd" type="Script" id=2]
+[ext_resource path="res://materials/stainless.material" type="Material" id=3]
+[ext_resource path="res://materials/heatshield2side.tres" type="Material" id=4]
+[ext_resource path="res://materials/flag.tres" type="Material" id=5]
+[ext_resource path="res://materials/black.tres" type="Material" id=6]
+[ext_resource path="res://materials/spacex.tres" type="Material" id=7]
+
+[node name="Scene Root" instance=ExtResource( 1 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.37946, 0 )
+script = ExtResource( 2 )
+
+[node name="bottom_fuse" parent="." index="0"]
+material/0 = ExtResource( 3 )
+
+[node name="bottom_heatshield" parent="." index="1"]
+material/0 = ExtResource( 3 )
+
+[node name="canard1" parent="." index="4"]
+material/0 = ExtResource( 4 )
+
+[node name="canard2" parent="." index="5"]
+material/0 = ExtResource( 4 )
+
+[node name="flag" parent="." index="6"]
+material/0 = ExtResource( 5 )
+
+[node name="hatch1" parent="." index="7"]
+material/0 = ExtResource( 3 )
+
+[node name="hatch1_outline" parent="." index="8"]
+material/0 = ExtResource( 6 )
+
+[node name="hatch2" parent="." index="9"]
+material/0 = ExtResource( 3 )
+
+[node name="hatch2_outline" parent="." index="10"]
+material/0 = ExtResource( 6 )
+
+[node name="pipes" parent="." index="11"]
+material/0 = ExtResource( 4 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="." index="12"]
+transform = Transform( -0.109759, -0.369038, 0.922911, -0.993812, 0.024852, -0.108253, 0.0170135, -0.929082, -0.369482, 0.165895, 10.2401, -18.7337 )
+visible = false
+
+[node name="spacex" parent="." index="13"]
+material/0 = ExtResource( 7 )
+
+[node name="tank rear" parent="." index="14"]
+transform = Transform( 4.47896, 0, 0, 0, 4.47896, 0, 0, 0, 4.47896, 0, 6.94738, 0 )
+
+[node name="top_fuse" parent="." index="16"]
+material/0 = ExtResource( 3 )
+
+[node name="top_heatshield" parent="." index="17"]
+material/0 = ExtResource( 3 )
+
+[node name="wing2" parent="." index="123"]
+material/0 = ExtResource( 3 )
+
+[node name="DirectionalLight2" type="DirectionalLight" parent="." index="124"]
+transform = Transform( 0.143366, 0.00512838, 0.989657, 0, 0.999987, -0.00518192, -0.98967, 0.00074291, 0.143364, 16.2981, 18.3488, 2.36099 )
+visible = false
+
+[node name="wing3" parent="." index="125"]
+material/0 = ExtResource( 3 )
+
+[node name="wing4" parent="." index="126"]
+transform = Transform( -1.25, 0, 0.166044, 0, 6.66058, 0, -2.16506, 0, -0.0958657, -2.43785, 6.14, -4.22248 )
+material/0 = ExtResource( 3 )

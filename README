@@ -1,0 +1,141 @@
+Big F'n Rocket
+
+The most ridiculous game we can think of.
+It'll consume all your nights & weekends, just like working at SpaceX.
+Be a part of mankind's greatest adventure.
+It makes a Saturn V look like a toy.
+
+
+
+blends - blender projects
+exports - colladas/daes/gltfs exported by blender
+gdscripts - godot scripts
+images - godot jpgs/pngs
+materials - godot materials & textures
+pyscripts - blender scripts
+scenes - godot tscns
+sounds - godot sounds
+
+
+
+
+
+All models are created in Blender
+
+booster3.blend - the most recent booster
+bfs7.blend - the most recent ship
+cloud.blend - obstacle
+goes.blend - obstacle
+hangar.blend - the hangar
+
+letters.blend - all the 3D text models
+export_letters.py - export the 3D text models
+
+nitromethane.blend - nitro bottle
+
+ramp.blend + ramp.py - project & script to create a barrel roll ramp
+
+
+starlink.blend - obstacle
+hubble.blend - obstacle
+goes.blend - obstacle
+
+
+ship.py - run to synthesize the procedural parts of the ship
+booster.py - run to synthesize the procedural parts of the booster
+dump.py - print all the object names to dump.txt for exporting
+export_ship.py - export the .dae file of the ship
+export_grid.py - export the .dae file of the grid fin
+export_booster.py - export the .dae file of the booster
+hangar.py - synthesize the hangar
+export_hangar.py - export the .dae file of the hangar
+
+blends/raptor.blend - the raptor model
+pyscripts/export_raptor.py - export the raptor model
+scenes/raptor.tscn - the raptor model
+gdscripts/raptor.gd - the raptor script
+
+SpaceX-Logo-Font/ - the spacex font
+
+bfs.godot - the game
+
+addons/ - blender plugins go here
+
+
+
+
+track notes:
+    side arrows define track
+    track is sideways
+    player controls altitude 
+    2 dimensions
+    blender curve for each side & scripts to generate model
+    ramps
+
+
+
+
+
+
+Obsolete Freecad notes:
+
+Paste engines from raptor.fcstd into bfs.fcstd, 2 sea levels & 4 vacuums.
+Place BFS engines by running bfs_engines.FCMacro 
+
+
+Synthesize a grid fin by running grid.FCMacro
+Copy parts from grid_parts.fcstd into the grid.
+Tesselate by running export_grid.FCMacro
+Paste grids into booster.fcstd
+Place grids using place_grids.FCMacro
+
+
+
+Create sea level raptor mesh in raptor.fcstd with export_raptor.FCMacro
+Paste 31 sea level engines from raptor.fcstd into booster.fcstd
+Place booster engines by running booster_engines.FCMacro 
+
+
+
+
+launchpad.blend - the launchpad
+Export by selecting ground, launchpad, tower
+GLTF options: apply modifiers, selected only
+
+numbers.blend - the countdown numbers
+
+
+
+
+
+wishlist:
+flat spins using gridfins
+drift using gridfins
+RUD instead of WRECK
+
+
+maps:
+Elon's commute
+
+
+
+
+knockdown
+landing race
+liftoff race
+mars race
+infected
+
+
+
+
+
+
+
+
+
+
+
+
+
+

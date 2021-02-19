@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/engine_transition2.wav-a7106790effc8a0a7505fcc4227cfd7f.sample"
+
+[deps]
+
+source_file="res://sounds/engine_transition2.wav"
+dest_files=[ "res://.import/engine_transition2.wav-a7106790effc8a0a7505fcc4227cfd7f.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=true
+edit/normalize=true
+edit/loop=false
+compress/mode=0

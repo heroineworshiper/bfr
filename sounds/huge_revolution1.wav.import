@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/huge_revolution1.wav-33bff13a9c2714d6d3f83e4f768f8268.sample"
+
+[deps]
+
+source_file="res://sounds/huge_revolution1.wav"
+dest_files=[ "res://.import/huge_revolution1.wav-33bff13a9c2714d6d3f83e4f768f8268.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=true
+edit/normalize=true
+edit/loop=false
+compress/mode=0

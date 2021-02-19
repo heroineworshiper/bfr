@@ -1,0 +1,751 @@
+# convert sketch to a track
+
+import os
+import bpy
+import bmesh
+import sys
+import importlib
+import math
+from mathutils import *
+
+
+libpath = os.path.dirname(bpy.data.filepath) + "/../pyscripts"
+sys.path.append(libpath)
+print("libpath=%s" % (libpath))
+
+import bfs
+importlib.reload(bfs)
+
+
+from bpy_extras.image_utils import load_image
+
+AREA_PATH = os.path.dirname(bpy.data.filepath) + "/../gdscripts/areas.txt"
+
+SEGMENT_W = 3
+SEGMENT_H = 6
+SEGMENT_L = 12
+SEGMENT_L2 = 11
+SEGMENT_TAPER = 0.75
+
+# space between floor faces
+FLOOR_L = 5
+# space between gravity faces
+GRAVITY_L = 50
+
+BOUNDARY_W = 30
+BOUNDARY_H = 100
+
+tracks = []
+debug = 0
+
+
+
+def interpolateCoords(coord1, coord2, fraction):
+    inverse = 1.0 - fraction
+    return [coord1[0] * fraction + coord2[0] * inverse, \
+        coord1[1] * fraction + coord2[1] * inverse, \
+        coord1[2] * fraction + coord2[2] * inverse]
+
+
+# sort the vertices in the object & return a new array of world frame vertices
+def sortVertices(src, reverse = False):
+    src_verts = src.data.vertices
+    src_edges = src.data.edges
+
+# Search for 2 vertices that occur only once to find the start & end.
+    vertexUsage = []
+    for src_edge in src_edges:
+        vertexUsage.append(src_edge.vertices[0])
+        vertexUsage.append(src_edge.vertices[1])
+
+    startVertex = 0
+    startSide = 0
+    gotStart = False
+    for i in range(0, len(src_verts)):
+        # count the number of times an element occurs in the array
+        if vertexUsage.count(i) == 1:
+            #print("sortVertices vertex %d used once" % (i))
+# use the lower numbered one as the start
+            if startVertex < i:
+# use the higher numbered one as the start
+                startVertex = i
+                startSide = i % 1
+                gotStart = True
+
+
+    current_vert = startVertex
+    oppositeSide = 1 - startSide
+    sorted_verts = [ src_verts[current_vert] ]
+    got_it = True
+    gotEdges = []
+    while got_it:
+        got_it = False
+        # find an edge with the current vertex
+        for i in range(0, len(src_edges)):
+            if(gotEdges.count(i) == 0):
+                src_edge = src_edges[i]
+                if(src_edge.vertices[0] == current_vert):
+                    current_vert = src_edge.vertices[1]
+                    #print("sortVertices sorted 1 vert=%d" % (current_vert))
+                    sorted_verts.append(src_verts[current_vert])
+                    gotEdges.append(i)
+                    got_it = True
+                    break
+                if(src_edge.vertices[1] == current_vert):
+                    current_vert = src_edge.vertices[0]
+                    #print("sortVertices sorted 2 vert=%d" % (current_vert))
+                    sorted_verts.append(src_verts[current_vert])
+                    gotEdges.append(i)
+                    got_it = True
+                    break
+
+#    for i in range(0, len(sorted_verts)):
+#        coord = src.matrix_world * sorted_verts[i].co
+#        print("sorted vert=%f,%f,%f" % (coord[0], coord[1], coord[2]))
+
+
+# source verts in world frame
+    scaledVerts = []
+    if reverse:
+        for i in range(0, len(sorted_verts)):
+            coord = sorted_verts[len(sorted_verts) - 1 - i].co
+            scaledVerts.append(src.matrix_world * coord)
+    else:
+        for vert in sorted_verts:
+            coord = vert.co
+            scaledVerts.append(src.matrix_world * coord)
+
+    return scaledVerts
+
+
+# convert vector to rotation matrix pointing in same direction
+def vecToRot(direction, normal=Vector([0, 0, 1])):
+    direction = direction.normalized()
+# need vector pointing up from a face
+#    up = Vector([0, 0, 1])
+    up = normal
+    xaxis = up.cross(direction)
+    xaxis = xaxis.normalized()
+    
+    yaxis = direction.cross(xaxis)
+    yaxis = yaxis.normalized()
+    
+    result = Matrix((
+        (xaxis.x, yaxis.x, direction.x), 
+        (xaxis.y, yaxis.y, direction.y), 
+        (xaxis.z, yaxis.z, direction.z)))
+    return result
+
+
+
+# create evenly spaced vertices from a side of the track
+# corrupt output? change reverse
+def createVerts(srcName, spacing, reverse=False, testObject=None):
+    sortedVerts = sortVertices(bfs.findObject(srcName), reverse)
+    
+# test objects for the new vertices
+    if testObject != None:
+        dst, bm, mesh = bfs.createObject(testObject)
+
+# vertices spaced evenly across leftSorted
+    spacedVerts = []
+    for vert in sortedVerts:
+        if len(spacedVerts) == 0:
+            spacedVerts.append(vert)
+            if testObject != None:
+                bm.verts.new(vert)
+            refCoord2 = vert
+            prevCoord = vert
+        else:
+# step towards next vertex until distance from previous vertex matches
+            refCoord1 = refCoord2
+            refCoord2 = vert
+            i_offset = 0
+            for i in range(0, 1000):
+                fraction = float(i - i_offset) / 1000
+                testCoord = interpolateCoords(refCoord2, refCoord1, fraction)
+                distance = bfs.mag(Vector(testCoord) - Vector(prevCoord))
+# covered enough distance.  Add a new point
+                if distance >= spacing:
+                    spacedVerts.append(Vector(testCoord))
+                    if testObject != None:
+                        bm.verts.new(testCoord)
+                    prevCoord = testCoord
+                    
+
+    if testObject != None:
+        bm.verts.ensure_lookup_table()
+        bm.to_mesh(mesh)
+        bm.free()  # always do this when finished
+
+
+
+    return (spacedVerts)
+
+
+
+# create a k barrier
+def createSegment(center, 
+    bm, 
+    direction, 
+    x_offset, 
+    color, 
+    normal=Vector([0, 0, 1])):
+    mat_rot = vecToRot(direction, normal)
+
+# top clockwise
+    vert1 = bm.verts.new(mat_rot * Vector([
+        -SEGMENT_W * SEGMENT_TAPER / 2 + x_offset,
+        SEGMENT_H, 
+        -SEGMENT_L2 / 2]) + center)
+    vert2 = bm.verts.new(mat_rot * Vector([
+        -SEGMENT_W * SEGMENT_TAPER / 2 + x_offset,
+        SEGMENT_H, 
+        SEGMENT_L2 / 2]) + center)
+    vert3 = bm.verts.new(mat_rot * Vector([
+        SEGMENT_W * SEGMENT_TAPER / 2 + x_offset,
+        SEGMENT_H, 
+        SEGMENT_L2 / 2]) + center)
+    vert4 = bm.verts.new(mat_rot * Vector([
+        SEGMENT_W * SEGMENT_TAPER / 2 + x_offset,
+        SEGMENT_H, 
+        -SEGMENT_L2 / 2]) + center)
+
+# bottom clockwise
+    vert5 = bm.verts.new(mat_rot * Vector([
+        -SEGMENT_W / 2 + x_offset,
+        0, 
+        -SEGMENT_L2 / 2]) + center)
+    vert6 = bm.verts.new(mat_rot * Vector([
+        -SEGMENT_W / 2 + x_offset,
+        0, 
+        SEGMENT_L2 / 2]) + center)
+    vert7 = bm.verts.new(mat_rot * Vector([
+        SEGMENT_W / 2 + x_offset,
+        0, 
+        SEGMENT_L2 / 2]) + center)
+    vert8 = bm.verts.new(mat_rot * Vector([
+        SEGMENT_W / 2 + x_offset,
+        0, 
+        -SEGMENT_L2 / 2]) + center)
+
+# start of this segment for UV assignment
+    starting_face = len(bm.faces)
+# top
+    bm.faces.new((vert4, vert3, vert2, vert1))
+# bottom
+    bm.faces.new((vert5, vert6, vert7, vert8))
+# sides
+    bm.faces.new((vert5, vert8, vert4, vert1))
+    bm.faces.new((vert2, vert3, vert7, vert6))
+    bm.faces.new((vert1, vert2, vert6, vert5))
+    bm.faces.new((vert3, vert4, vert8, vert7))
+
+
+# create UV's
+#    global debug
+#    if debug < 1:
+#        debug = debug + 1
+    if True:
+        uv_layer = bm.loops.layers.uv.verify()
+        bm.faces.layers.tex.verify()
+
+        uv_list = [
+            0.1, 1,
+            0.1, 0,
+            1, 0, 
+            1, 1, 
+        ]
+
+        #print("color=%s faces=%d" % (color, len(bm.faces)))
+        bm.faces.ensure_lookup_table()
+        for j in range(starting_face, len(bm.faces)):
+            face = bm.faces[j]
+            for i, loop in enumerate(face.loops):
+                uv = loop[uv_layer].uv
+                if color:
+                    uv[0] = uv_list[i * 2] * 0.5
+                else:
+                    uv[0] = uv_list[i * 2] * 0.5 + 0.5
+                uv[1] = uv_list[i * 2 + 1]
+            #print("i=%d uv=%f,%f" % (i, uv[0], uv[1]))
+
+    return [vert5.co, vert6.co], [vert8.co, vert7.co]
+
+
+
+# create sides, UV map
+def createSide(dstName, srcName, floorEdges, isRight):
+    verts = createVerts(srcName, SEGMENT_L, reverse=False, testObject=None)
+
+#    for i in floorEdges:
+#        print("createSide [%f,%f,%f %f,%f,%f]" % 
+#            (i[0].x, i[0].y, i[0].z, i[1].x, i[1].y, i[1].z))
+
+# create the result object
+    dst, bm, mesh = bfs.createObject(dstName)
+    segmentColor = False
+    floorIndex = 0
+    floorAccum = 0
+    sideAccum = 0
+    floorEdge = floorEdges[1]
+    prevFloorEdge = floorEdges[0]
+    if isRight:
+        x_offset = SEGMENT_W / 2
+        side = 1
+        oppositeSide = 0
+    else:
+        x_offset = -SEGMENT_W / 2
+        side = 0
+        oppositeSide = 1
+    for i in range(0, len(verts)):
+# get the corresponding floor edges for the corresponding side segment
+        if i > 0:
+            sideAccum = sideAccum + bfs.hypot3(verts[i], verts[i - 1])
+        while floorIndex < len(floorEdges) - 1 and floorAccum < sideAccum:
+            floorIndex = floorIndex + 1
+            prevFloorEdge = floorEdge
+            floorEdge = floorEdges[floorIndex]
+            floorAccum = floorAccum + bfs.hypot3(floorEdge[side], prevFloorEdge[side])
+# get the normal for the floor edges
+        up = bfs.normal(floorEdge[side],
+            prevFloorEdge[side],
+            prevFloorEdge[oppositeSide])
+        if not isRight:
+             up = up * -1
+        #print("floorAccum=%f sideAccum=%f floorIndex=%d normal=%f,%f,%f" % 
+        #    (floorAccum, sideAccum, floorIndex, up.x, up.y, up.z))
+        if i < len(verts) - 1:
+            position = (verts[i + 1] + verts[i]) / 2
+            direction = verts[i + 1] - verts[i]
+        else:
+            position = verts[i]
+            direction = verts[i] - verts[i - 1]
+        left_verts2, right_verts2 = createSegment(
+            position, 
+            bm, 
+            direction,
+            x_offset,
+            segmentColor,
+            up)
+
+        segmentColor = not segmentColor
+
+    bm.verts.ensure_lookup_table()
+    bm.faces.ensure_lookup_table()
+
+
+
+
+# make the bmesh the object's mesh
+    bm.to_mesh(mesh)
+    bm.free()  # always do this when finished
+
+    bfs.flip_normals(dst)
+
+    if False:
+    # create the material
+        #print("createSide 1 %s" % (os.path.dirname(bpy.data.filepath)))
+        image = load_image("bfs.godot/assets/track1.png", 
+            os.path.dirname(bpy.data.filepath), 
+            check_existing=True, 
+            force_reload=False)
+        #print("createSide 2 %s" % (image.filepath))
+        tex = bfs.create_image_textures(image)
+        material = bfs.create_material_for_texture(tex)
+
+
+    # assign the material
+        if dst.data.materials:
+            dst.data.materials[0] = material
+            material_id = 0
+        else:
+            dst.data.materials.append(material)
+            material_id = len(dst.data.materials) - 1
+        print("uv_textures=%d data=%d" % (len(dst.data.uv_textures), len(dst.data.uv_textures[0].data)))
+        for tex in dst.data.uv_textures[0].data:
+            tex.image = image
+
+
+
+
+
+
+def nearestVert(verts, vert):
+    min_i = -1
+    min_distance = -1
+    for i in range(0, len(verts)):
+        distance = math.hypot(verts[i][0] - vert[0], \
+                verts[i][1] - vert[1])
+        distance = math.hypot(distance, verts[i][2] - vert[2])
+        if distance < min_distance or min_i == -1:
+            min_distance = distance
+            min_i = i
+    return min_i
+
+
+
+
+
+
+
+def nearestVert(sideI, sideVerts, directionI, directionVerts, debug):
+    # read backwards to get direction length
+    i = directionI - 1
+    directionVector = Vector([0, 0, 0])
+    while directionVector.length < 0.000001:
+        directionVector = directionVerts[directionI] - directionVerts[i]
+        if i > 0:
+            i = i - 1
+        else:
+            break
+
+    # read forwards to get direction length
+    j = directionI + 1
+    while directionVector.length < 0.000001:
+        directionVector = directionVerts[j] - directionVerts[i]
+        if j < len(directionVerts):
+            j = j + 1
+        else:
+            break
+
+    for i in range(sideI, len(sideVerts)):
+        sideVector = sideVerts[i] - directionVerts[directionI]
+
+        #print("nearestVert directionI=%d directionVector.length=%f" \
+        #    % (directionI, directionVector.length))
+        angle = abs(directionVector.angle(sideVector))
+        if debug == True:
+            print("nearestVert i=%d %f,%f,%f %f,%f,%f angle=%f\n" % 
+                (i, 
+                    sideVerts[i].x, 
+                    sideVerts[i].y, 
+                    sideVerts[i].z, 
+                    directionVerts[directionI].x,
+                    directionVerts[directionI].y,
+                    directionVerts[directionI].z,
+                    bfs.fromRad(angle)))
+# get the rightest angle
+        if i == sideI or \
+            abs(angle - math.pi / 2) < abs(bestAngle - math.pi / 2):
+            bestAngle = angle
+            bestIndex = i
+        else:
+            break
+
+    return bestIndex
+
+
+
+
+
+# extrude between 2 curves of unequal numbers of segments
+# with perpendicular lines
+# returns a table of edges
+def createFloor(dstName, leftName, rightName, dirName):
+# create vertices for the new edges
+    leftVerts = createVerts(leftName, FLOOR_L)
+    rightVerts = createVerts(rightName, FLOOR_L)
+    directionVerts = createVerts(dirName, FLOOR_L, False)
+    #print("directionVerts=%d" % (len(directionVerts)))
+
+
+
+# object for the new edges
+    dst, bm, mesh = bfs.createObject(dstName)
+# face lengths for each side
+    floorEdges = []
+    nearestLeft = 0
+    nearestRight = 0
+    prevLeft = -1
+    prevRight = -1
+    prevVert1 = None
+    prevVert2 = None
+    for i in range(0, len(directionVerts)):
+# find nearest local vertices on the sides
+        nearestLeft = nearestVert(nearestLeft, leftVerts, i, directionVerts, False)
+        nearestRight = nearestVert(nearestRight, rightVerts, i, directionVerts, False)
+        if nearestLeft != prevLeft or nearestRight != prevRight:
+            if nearestLeft != prevLeft:
+                vert1 = bm.verts.new(leftVerts[nearestLeft])
+            else:
+                vert1 = prevVert1
+
+            if nearestRight != prevRight:
+                vert2 = bm.verts.new(rightVerts[nearestRight])
+            else:
+                vert2 = prevVert2
+
+            if prevVert1 != None and prevVert2 != None:
+                if vert1 != prevVert1 and vert2 != prevVert2:
+# 4 unique vertices
+                    bm.faces.new((vert1, vert2, prevVert2, prevVert1))
+                elif vert1 != prevVert1:
+# triangle faces
+                    bm.faces.new((vert1, vert2, prevVert1))
+                else:
+                    bm.faces.new((vert1, vert2, prevVert2))
+
+                floorEdges.append([leftVerts[nearestLeft], rightVerts[nearestRight]])
+
+            prevVert1 = vert1
+            prevVert2 = vert2
+            prevLeft = nearestLeft
+            prevRight = nearestRight
+# debug
+#        if i == 10:
+#            break;
+
+    bm.verts.ensure_lookup_table()
+    bm.faces.ensure_lookup_table()
+    bm.to_mesh(mesh)
+    bm.free()
+    return floorEdges
+
+
+
+
+
+# create out of bounds meshes outside the track
+def createBoundary(dstName, srcName, floorEdges, isRight):
+    verts = sortVertices(bfs.findObject(srcName), False)
+
+    dst, bm, mesh = bfs.createObject(dstName)
+
+    prevVerts = []
+    floorIndex = 0
+    floorAccum = 0
+    sideAccum = 0
+    floorEdge = floorEdges[1]
+    prevFloorEdge = floorEdges[0]
+    if isRight:
+        side = 1
+        oppositeSide = 0
+    else:
+        side = 0
+        oppositeSide = 1
+
+    for i in range(0, len(verts)):
+# get the corresponding floor edges for the current boundary segment
+        if i > 0:
+            sideAccum = sideAccum + bfs.hypot3(verts[i], verts[i - 1])
+        while floorIndex < len(floorEdges) - 1 and floorAccum < sideAccum:
+            floorIndex = floorIndex + 1
+            prevFloorEdge = floorEdge
+            floorEdge = floorEdges[floorIndex]
+            floorAccum = floorAccum + bfs.hypot3(floorEdge[side], prevFloorEdge[side])
+# get the normal for the floor edges
+        up = bfs.normal(floorEdge[side],
+            prevFloorEdge[side],
+            prevFloorEdge[oppositeSide])
+        if up.length < 0.0001:
+# triangle
+            #print("createBoundary up < 0.0001\n")
+            up = bfs.normal(floorEdge[side],
+                prevFloorEdge[oppositeSide],
+                floorEdge[oppositeSide])
+        up = up.normalized()
+        if not isRight:
+             up = up * -1
+        #print("createBoundary %f %f,%f,%f\n" % (up.length, up.x, up.y, up.z))
+
+# direction of the boundary edge
+        if i == 0:
+            direction = Vector(verts[i + 1]) - Vector(verts[i])
+        else:
+            direction = Vector(verts[i]) - Vector(verts[i - 1])
+        mat_rot = vecToRot(direction, up)
+
+# the points of the new boundary edge
+        if not isRight:
+            point = mat_rot * Vector([BOUNDARY_W, 0, 0]) + Vector(verts[i])
+        else:
+            point = mat_rot * Vector([-BOUNDARY_W, 0, 0]) + Vector(verts[i])
+
+        point2 = point + mat_rot * Vector([0, BOUNDARY_H, 0])
+# create the new boundary edge
+        nextVerts = [bm.verts.new(Vector(verts[i])),
+            bm.verts.new(point),
+            bm.verts.new(point2)]
+        if len(prevVerts) > 0:
+            bm.faces.new((nextVerts[0], 
+                prevVerts[0], 
+                prevVerts[1],
+                nextVerts[1]))
+            bm.faces.new((nextVerts[1],
+                prevVerts[1],
+                prevVerts[2],
+                nextVerts[2]))
+        prevVerts = nextVerts
+
+
+    bm.faces.ensure_lookup_table()
+    bm.to_mesh(mesh)
+    bm.free()  # always do this when finished
+
+    if not isRight:
+        bfs.flip_normals(dst)
+    return
+
+
+
+
+# create gravity areas from the floor edges
+# this creates vertices which godot can convert to area objects
+def createGravity(dstName, floorEdges):
+    print("writing gravity areas to " + AREA_PATH);
+    file = open(AREA_PATH, "w")
+    dst, bm, mesh = bfs.createObject(dstName)
+    floorStep = int(GRAVITY_L / FLOOR_L)
+    edgeIndex = 0
+
+    #print("createGravity floorEdges=%d" % len(floorEdges))
+    while True:
+        floorEdge = floorEdges[edgeIndex]
+
+# create wide floor edge
+        edgeCenter = (floorEdge[0] + floorEdge[1]) / 2
+        edgeLength = bfs.hypot3(floorEdge[0], floorEdge[1])
+        edgeScale = ((edgeLength / 2) + BOUNDARY_W) / (edgeLength / 2)
+        point1 = edgeCenter + (floorEdge[0] - edgeCenter) * edgeScale
+        point2 = edgeCenter + (floorEdge[1] - edgeCenter) * edgeScale
+        vert1 = bm.verts.new(Vector(point1))
+        vert2 = bm.verts.new(Vector(point2))
+
+        if edgeIndex > 0:
+# get the normal for the floor edges
+            up = bfs.normal(floorEdge[1],
+                prevFloorEdge[1],
+                floorEdge[0])
+            if up.length < 0.0001:
+# triangle
+                up = bfs.normal(floorEdge[1],
+                    prevFloorEdge[0],
+                    floorEdge[0])
+
+            #print("createGravity normal=%f %f %f" % (up.x, up.y, up.z))
+
+            up = up.normalized()
+
+
+            vert3 = bm.verts.new(Vector(point1 + up * BOUNDARY_H))
+            vert4 = bm.verts.new(Vector(point2 + up * BOUNDARY_H))
+            if edgeIndex == floorStep:
+                prevVert3 = bm.verts.new(Vector(prevVert1.co + up * BOUNDARY_H))
+                prevVert4 = bm.verts.new(Vector(prevVert2.co + up * BOUNDARY_H))
+
+# create 4 more bottom vertices
+            bottom1 = bm.verts.new(Vector(vert1.co - up * BOUNDARY_H))
+            bottom2 = bm.verts.new(Vector(vert2.co - up * BOUNDARY_H))
+            bottom3 = bm.verts.new(Vector(prevVert1.co - up * BOUNDARY_H))
+            bottom4 = bm.verts.new(Vector(prevVert2.co - up * BOUNDARY_H))
+
+# write all 8 vertices of the area to the file
+            file.write("AREA\n")
+            file.write("%f %f %f\n" % (vert1.co.x, vert1.co.y, vert1.co.z))
+            file.write("%f %f %f\n" % (vert2.co.x, vert2.co.y, vert2.co.z))
+            file.write("%f %f %f\n" % (vert3.co.x, vert3.co.y, vert3.co.z))
+            file.write("%f %f %f\n" % (vert4.co.x, vert4.co.y, vert4.co.z))
+            file.write("%f %f %f\n" % (prevVert1.co.x, prevVert1.co.y, prevVert1.co.z))
+            file.write("%f %f %f\n" % (prevVert2.co.x, prevVert2.co.y, prevVert2.co.z))
+            file.write("%f %f %f\n" % (prevVert3.co.x, prevVert3.co.y, prevVert3.co.z))
+            file.write("%f %f %f\n" % (prevVert4.co.x, prevVert4.co.y, prevVert4.co.z))
+
+            file.write("%f %f %f\n" % (bottom1.co.x, bottom1.co.y, bottom1.co.z))
+            file.write("%f %f %f\n" % (bottom2.co.x, bottom2.co.y, bottom2.co.z))
+            file.write("%f %f %f\n" % (bottom3.co.x, bottom3.co.y, bottom3.co.z))
+            file.write("%f %f %f\n\n" % (bottom4.co.x, bottom4.co.y, bottom4.co.z))
+
+# vertex line numbers in the file
+# top vertices:
+# 2-----3
+# |     |
+# 6-----7
+# track level vertices:
+# 0-----1
+# |     |
+# 4-----5
+# bottom vertices:
+# 8-----9
+# |     |
+# 10---11
+
+
+
+# create faces to get godot to import the vertices for testing
+# create bottom face
+            bm.faces.new((vert1, vert2, prevVert2, prevVert1))
+# create top face
+            bm.faces.new((prevVert3, prevVert4, vert4, vert3))
+# must be fully enclosed to test gravity.  Area ignores face culling
+            if edgeIndex == floorStep:
+                bm.faces.new((prevVert1, prevVert2, prevVert4, prevVert3))
+            if edgeIndex == len(floorEdges) - 1:
+                bm.faces.new((vert3, vert4, vert2, vert1))
+
+# shift vertex pointers back
+            prevVert3 = vert3
+            prevVert4 = vert4
+
+        prevVert1 = vert1
+        prevVert2 = vert2
+        prevFloorEdge = floorEdge
+
+# done
+        if edgeIndex >= len(floorEdges) - 1:
+        #if edgeIndex >= 605:
+            break
+# go to the next edge
+        edgeIndex = edgeIndex + floorStep
+        if edgeIndex >= len(floorEdges):
+            edgeIndex = len(floorEdges) - 1
+
+    print("createGravity bm.faces=%d" % len(bm.faces))
+    bm.verts.ensure_lookup_table()
+    bm.faces.ensure_lookup_table()
+    bm.to_mesh(mesh)
+    bm.free()
+    file.close()
+    return
+
+
+
+
+# the mane function
+
+# create the floor collision object before the sides to get the angle of the sides
+floorEdges = createFloor("floor-col", "ltrack", "rtrack", "direction")
+
+
+
+# create the visible barriers
+createSide("left-col", "ltrack", floorEdges, False)
+createSide("right-col", "rtrack", floorEdges, True)
+
+# create the out of bounds
+createBoundary("left_boundary", "ltrack", floorEdges, False)
+createBoundary("right_boundary", "rtrack", floorEdges, True)
+
+# create gravity areas.  Must be exported as mesh instances
+createGravity("gravity", floorEdges)
+
+
+# export the scene
+bfs.selectList(["left_boundary",
+    "right_boundary",
+    "left-col",
+    "right-col",
+    "floor-col",
+    "left_boundary",
+    "right_boundary",
+    "gravity"])
+bfs.exportWrapper("track1.dae")
+
+
+
+
+
+
+
+
+

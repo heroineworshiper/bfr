@@ -1,0 +1,27 @@
+[gd_scene load_steps=6 format=2]
+
+[ext_resource path="res://images/splash.png" type="Texture" id=1]
+
+[sub_resource type="SpatialMaterial" id=1]
+albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="CanvasItemMaterial" id=2]
+next_pass = SubResource( 1 )
+light_mode = 1
+
+[sub_resource type="SpatialMaterial" id=3]
+flags_unshaded = true
+albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="CanvasItemMaterial" id=4]
+next_pass = SubResource( 3 )
+
+[node name="Node2D" type="Node2D"]
+material = SubResource( 2 )
+
+[node name="Sprite" type="Sprite" parent="."]
+material = SubResource( 4 )
+position = Vector2( 354.675, 207.18 )
+scale = Vector2( 0.369066, 0.379757 )
+texture = ExtResource( 1 )
+region_rect = Rect2( 0, 0, 1, 1 )

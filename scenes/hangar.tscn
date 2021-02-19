@@ -1,0 +1,168 @@
+[gd_scene load_steps=23 format=2]
+
+[ext_resource path="res://exports/hangar.dae" type="PackedScene" id=1]
+[ext_resource path="res://gdscripts/hangar.gd" type="Script" id=2]
+[ext_resource path="res://scenes/single_booster.tscn" type="PackedScene" id=3]
+[ext_resource path="res://scenes/single_ship.tscn" type="PackedScene" id=4]
+[ext_resource path="res://materials/crane.tres" type="Material" id=5]
+[ext_resource path="res://materials/crane_track.tres" type="Material" id=6]
+[ext_resource path="res://materials/floor.tres" type="Material" id=7]
+[ext_resource path="res://materials/light.material" type="Material" id=8]
+[ext_resource path="res://materials/light_leg.tres" type="Material" id=9]
+[ext_resource path="res://materials/roof.tres" type="Material" id=10]
+[ext_resource path="res://materials/stand.tres" type="Material" id=11]
+[ext_resource path="res://materials/stand2.tres" type="Material" id=12]
+[ext_resource path="res://materials/stand3.tres" type="Material" id=13]
+[ext_resource path="res://materials/stand4.tres" type="Material" id=14]
+[ext_resource path="res://materials/vent.tres" type="Material" id=15]
+[ext_resource path="res://materials/vrib.tres" type="Material" id=16]
+[ext_resource path="res://materials/wall.tres" type="Material" id=17]
+[ext_resource path="res://materials/wall2.tres" type="Material" id=18]
+[ext_resource path="res://materials/wall3.tres" type="Material" id=19]
+[ext_resource path="res://materials/font.tres" type="Theme" id=20]
+
+[sub_resource type="DynamicFontData" id=1]
+font_path = "res://materials/bankgothic-regulardb.ttf"
+
+[sub_resource type="DynamicFont" id=2]
+size = 84
+outline_size = 2
+outline_color = Color( 0, 0, 0, 1 )
+font_data = SubResource( 1 )
+
+[node name="Scene Root" instance=ExtResource( 1 )]
+script = ExtResource( 2 )
+
+[node name="Spatial" type="Spatial" parent="." index="0"]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.0285225, 16.9514, -64.8617 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="." index="1"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 2.77859, -43.1084 )
+visible = false
+shadow_enabled = true
+
+[node name="OmniLight" type="OmniLight" parent="." index="2"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13.4197, -45.1288 )
+shadow_enabled = true
+omni_range = 51.0
+
+[node name="OmniLight2" type="OmniLight" parent="." index="3"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13.4197, -76.5779 )
+shadow_enabled = true
+omni_range = 51.0
+
+[node name="OmniLight3" type="OmniLight" parent="." index="4"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13.4197, -4.26504 )
+shadow_enabled = true
+omni_range = 51.0
+
+[node name="booster" parent="." index="5" instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 8.878, 5.997, -9.849 )
+
+[node name="ship" parent="." index="6" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -7.06101, 6.01499, -25.2606 )
+
+[node name="crane" parent="." index="7"]
+material/0 = ExtResource( 5 )
+
+[node name="crane ribs" parent="." index="8"]
+editor/display_folded = true
+
+[node name="crane track" parent="." index="9"]
+material/0 = ExtResource( 6 )
+
+[node name="crane2" parent="." index="11"]
+material/0 = ExtResource( 5 )
+
+[node name="floor" parent="." index="13"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00131883, -0.00195867, -0.00131228 )
+material/0 = ExtResource( 7 )
+
+[node name="light_2" parent="lights" index="12"]
+material/0 = ExtResource( 8 )
+
+[node name="light_50" parent="lights" index="46"]
+material/0 = ExtResource( 8 )
+
+[node name="light_leg_0" parent="lights" index="90"]
+material/0 = ExtResource( 9 )
+
+[node name="roof" parent="." index="16"]
+material/0 = ExtResource( 10 )
+
+[node name="stands" parent="." index="17"]
+editor/display_folded = true
+
+[node name="stand bottom" parent="stands" index="0"]
+material/0 = ExtResource( 11 )
+
+[node name="stand bottom2" parent="stands" index="1"]
+material/0 = ExtResource( 12 )
+
+[node name="stand bottom3" parent="stands" index="2"]
+material/0 = ExtResource( 13 )
+
+[node name="stand bottom4" parent="stands" index="3"]
+material/0 = ExtResource( 14 )
+
+[node name="stand top" parent="stands" index="4"]
+material/0 = ExtResource( 11 )
+
+[node name="vent" parent="." index="18"]
+material/0 = ExtResource( 15 )
+
+[node name="vribs" parent="." index="22"]
+editor/display_folded = true
+
+[node name="vrib_0" parent="vribs" index="0"]
+material/0 = ExtResource( 16 )
+
+[node name="walls" parent="." index="23"]
+material/0 = ExtResource( 17 )
+
+[node name="walls2" parent="." index="24"]
+material/0 = ExtResource( 18 )
+
+[node name="walls3" parent="." index="25"]
+material/0 = ExtResource( 19 )
+
+[node name="Viewport" type="Viewport" parent="." index="27"]
+size = Vector2( 1024, 512 )
+hdr = false
+disable_3d = true
+
+[node name="Camera_" type="Camera" parent="." index="28"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 1.55677, 10, 12.6415 )
+current = true
+fov = 90.0
+
+[node name="RichTextLabel" type="RichTextLabel" parent="." index="29"]
+margin_left = 24.9987
+margin_top = 105.005
+margin_right = 935.999
+margin_bottom = 222.005
+size_flags_horizontal = 0
+size_flags_vertical = 0
+custom_fonts/normal_font = SubResource( 2 )
+custom_colors/default_color = Color( 1, 0.866667, 0.462745, 1 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+bbcode_enabled = true
+bbcode_text = "BLOCK  [color=#ffffff]1[/color]  B.F.R."
+text = "BLOCK  1  B.F.R."
+
+[node name="upgrade" type="Button" parent="." index="30"]
+margin_left = 11.0
+margin_top = 456.0
+margin_right = 233.0
+margin_bottom = 526.0
+theme = ExtResource( 20 )
+text = " UPGRADE"
+
+[node name="career" type="Button" parent="." index="31"]
+margin_left = 740.0
+margin_top = 455.0
+margin_right = 949.0
+margin_bottom = 526.0
+theme = ExtResource( 20 )
+text = "CAREER"
+
